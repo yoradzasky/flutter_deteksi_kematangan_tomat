@@ -76,7 +76,7 @@ class _TomatoDetectorState extends State<TomatoDetector> {
   Future<void> _loadModel() async {
     try {
       // Pastikan nama file sesuai dengan yang ada di folder assets
-      _interpreter = await Interpreter.fromAsset('tomato_model_2output.tflite');
+      _interpreter = await Interpreter.fromAsset('assets/tomato_model_2output.tflite');
       print("Model TFLite loaded.");
     } catch (e) {
       print("Gagal load model TFLite: $e");
@@ -164,19 +164,58 @@ class _TomatoDetectorState extends State<TomatoDetector> {
       inputNumeric[i] = (numericFeatures[i] - _scalerMean[i]) / _scalerScale[i];
     }
 
-    // --- C. JALANKAN INFERENCE ---
-    // Siapkan output buffer (hanya 1 angka: Ripeness Probability)
-    var outputBuffer = Float32List(1);
-    Map<int, Object> outputs = {0: outputBuffer.reshape([1, 1])};
+    // --- C. JALANKAN INFERENCE (MULTI OUTPUT) ---
 
-    // Jalankan dengan 2 Input
+    // 1. Siapkan Wadah
+    var outputSizeBuffer = Float32List(1 * 3).reshape([1, 3]);
+    var outputRipenessBuffer = Float32List(1 * 1).reshape([1, 1]);
+
+    // 2. Masukkan ke Map
+    Map<int, Object> outputs = {
+      0: outputSizeBuffer,
+      1: outputRipenessBuffer
+    };
+
+    // 3. Jalankan AI
     _interpreter!.runForMultipleInputs(
-      [inputImage.reshape([1, 128, 128, 3]), inputNumeric.reshape([1, 6])], 
+      [
+        inputNumeric.reshape([1, 6]),
+        inputImage.reshape([1, 128, 128, 3])
+      ],
       outputs
     );
 
-    double ripenessRaw = (outputs[0] as List)[0][0] as double; 
-    print("Raw AI Prediction: $ripenessRaw");
+    // --- D. AMBIL HASILNYA (DENGAN PERBAIKAN TIPE DATA) ---
+
+    // Kita ambil datanya langsung dari Map 'outputs' dan paksa jadi List agar tidak kuning
+    var resultSize = outputs[0] as List;      // Paksa jadi List
+    var resultRipeness = outputs[1] as List;  // Paksa jadi List
+
+    // Ambil Data Ripeness (Index 1)
+    // resultRipeness bentuknya [[0.8]] -> Kita ambil angka dalamnya
+    double ripenessRaw = resultRipeness[0][0] as double;
+
+    // Ambil Data Size (Index 0)
+    // resultSize bentuknya [[0.1, 0.8, 0.1]] -> Kita ambil list dalamnya
+    List<double> sizeProbs = List<double>.from(resultSize[0]);
+
+    // Cari nilai tertinggi untuk menentukan Label Size
+    int sizeIndex = 0;
+    double maxSizeScore = -1.0;
+    for (int i = 0; i < sizeProbs.length; i++) {
+      if (sizeProbs[i] > maxSizeScore) {
+        maxSizeScore = sizeProbs[i];
+        sizeIndex = i;
+      }
+    }
+
+    // Mapping Index ke Label Size
+    String sizeLabelResult;
+    if (sizeIndex == 0) sizeLabelResult = "KECIL";
+    else if (sizeIndex == 1) sizeLabelResult = "SEDANG";
+    else sizeLabelResult = "BESAR";
+
+    print("AI Raw -> Ripeness: $ripenessRaw, Size Probs: $sizeProbs");
 
     // --- D. LOGIKA WARNA (HUE) ---
     double meanHue = _calculateMeanHue(resized); 
@@ -215,7 +254,7 @@ class _TomatoDetectorState extends State<TomatoDetector> {
       _label = finalLabel;
       _confString = "${(finalConf * 100).toStringAsFixed(1)}%";
       _statusColor = finalColor;
-      _sizeLabel = sizeRes;
+      _sizeLabel = sizeLabelResult; // Update label ukuran pakai hasil AI
     });
   }
 

@@ -1,9 +1,22 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
+}
+
+val flutterVersionCode = localProperties.getProperty("flutter.versionCode")
+val flutterVersionName = localProperties.getProperty("flutter.versionName")
 
 android {
     namespace = "com.example.tomato_detector"
@@ -11,42 +24,37 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        getByName("main").java.srcDirs("src/main/kotlin")
     }
 
     defaultConfig {
         applicationId = "com.example.tomato_detector"
         
-        // Gunakan sintaks 'minSdk =' (bukan minSdkVerison)
+        // --- KONFIGURASI MINIMUM SDK 26 ---
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
-        
-        // Kita ganti variabel yang error dengan angka langsung
-        versionCode = 1
-        versionName = "1.0.0"
-
-        ndk {
-            // Ini menyuruh komputer: "Hanya buat untuk Emulator (x86_64) saja!"
-            abiFilters.add("x86_64")
-
-        aaptOptions {
-        noCompress += "tflite"
-        }
+        versionCode = flutterVersionCode?.toInt() ?: 1
+        versionName = flutterVersionName ?: "1.0"
     }
-}
-
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+    
+    // --- KONFIGURASI TFLITE (Kotlin Style) ---
+    aaptOptions {
+        noCompress.add("tflite")
     }
 }
 
