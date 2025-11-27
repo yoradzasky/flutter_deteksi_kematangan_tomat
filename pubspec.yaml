@@ -36,6 +36,7 @@ flutter:
   assets:
     - assets/tomato_model_2output.tflite
     - assets/scaler_params.json
+    - assets/camera_calib.json
     # Jika ada file labels.txt (daftar nama kelas), masukkan juga
 
 
