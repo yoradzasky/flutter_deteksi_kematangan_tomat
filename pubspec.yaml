@@ -1,0 +1,45 @@
+name: tomato_detector
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  tflite_flutter: ^0.10.4
+  # Untuk mengambil gambar dari kamera/galeri
+  image_picker: ^1.0.4
+  # Untuk memproses pixel (hitung Hue)
+  image: ^4.0.17 
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+
+flutter:
+
+  
+  uses-material-design: true
+
+  assets:
+    - assets/tomato_model_2output.tflite
+    - assets/scaler_params.json
+    # Jika ada file labels.txt (daftar nama kelas), masukkan juga
+
+
+
+  
+
+  
